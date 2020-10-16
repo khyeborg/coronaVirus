@@ -5,7 +5,8 @@ let canvasWidth, canvasHeight;
 let subjectsArray = [];
 let subjectIDCounter = 0;
 let subjectSize = 25;
-let subjectSpeed = 2;
+let subjectSpeedLower = 0.5;
+let subjectSpeedUpper = 2.5;
 
 // overall subject stats variables
 let numberOfUninfectedSubjects = 1000;
@@ -15,10 +16,12 @@ let numberOfRecoveredSubjects = 0;
 let numberOfDeadSubjects = 0;
 
 // disease variables
-let infectionRate = 100;
+let infectionRate = 10;
 let infectionDistance = subjectSize;
-let contractedToInfectedDuration = 1000;
-let infectedToRecoveredDuration = 1000;
+let contractedToInfectedDurationLower = 750;
+let contractedToInfectedDurationUpper = 1250;
+let infectedToRecoveredDurationLower = 750;
+let infectedToRecoveredDurationUpper = 1250;
 let mortalityRate = 50;
 
 let xvalueCounter = 0;
@@ -41,6 +44,11 @@ function setup() {
       subjectsArray.push(new Subject(subjectIDCounter, "infected", random(width), random(height), subjectSize, random(1000000), random(1000000)));
       subjectIDCounter++;
    }
+
+   // create triedInfectedArray for each subject
+   for (let i = 0; i < subjectsArray.length; i++) {
+      subjectsArray[i].createTriedInfectedArray();
+   }
 }
  
 function draw() {
@@ -51,6 +59,10 @@ function draw() {
       subjectsArray[i].stateColor();
       subjectsArray[i].display();
       subjectsArray[i].move();
+
+      if (subjectsArray[i].state == "contracted") {
+         subjectsArray[i].infectOthers();
+      }
 
       if (subjectsArray[i].state == "infected") {
          subjectsArray[i].infectOthers();
@@ -76,9 +88,25 @@ class Subject {
       this.ynoise = ynoise;
       this.contractedCounter = 0;
       this.infectedCounter = 0;
+      this.triedInfectedArray = [];
+      this.contractedToInfectedDuration = random(contractedToInfectedDurationLower, contractedToInfectedDurationUpper);
+      this.infectedToRecoveredDuration = random(infectedToRecoveredDurationLower, infectedToRecoveredDurationUpper);
+      this.speed = random(subjectSpeedLower, subjectSpeedUpper);
 
       if (this.state == "infected") {
          this.abilityToRecover = this.recoveryOrDeath();
+      }
+   }
+
+   createTriedInfectedArray() {
+      for (let i = 0; i < subjectsArray.length; i++) {
+         if (this.id != i) {
+            this.triedInfectedArray.push("no");
+         }
+
+         else {
+            this.triedInfectedArray.push("me");
+         }
       }
    }
 
@@ -107,12 +135,6 @@ class Subject {
          this.b = 255;
       }
 
-      else if (this.state == "dead") {
-         this.r = 0;
-         this.g = 0;
-         this.b = 0;
-      }
-
       fill(this.r, this.g, this.b);
    }
 
@@ -127,7 +149,7 @@ class Subject {
       let xvalue = noise(this.xnoise);
 
       // map xvalue to xmove
-      let xmove = map(xvalue, 0, 1, -subjectSpeed, subjectSpeed);
+      let xmove = map(xvalue, 0, 1, -this.speed, this.speed);
       xvalueCounter += xmove;
 
       // change xPos based on xmove
@@ -140,7 +162,7 @@ class Subject {
       let yvalue = noise(this.ynoise);
 
       // map yvalue to ymove
-      let ymove = map(yvalue, 0, 1, -subjectSpeed, subjectSpeed);
+      let ymove = map(yvalue, 0, 1, -this.speed, this.speed);
       yvalueCounter += ymove;
 
       // change yPos based on ymove
@@ -171,8 +193,9 @@ class Subject {
       for (let i = 0; i < subjectsArray.length; i++) { 
          // if it's not the subject itself and the subject is state is not already contracted or infected or recovered or dead
          if (this.id != i && subjectsArray[i].state != "contracted" && subjectsArray[i].state != "infected" && subjectsArray[i].state != "recovered" && subjectsArray[i].state != "dead") {
-            // if another subject is touches the infected subject
-            if (dist(this.xPos, this.yPos, subjectsArray[i].xPos, subjectsArray[i].yPos) <= infectionDistance) {
+            // if another subject touches the infected subject and no infect attempt was made 
+            if (dist(this.xPos, this.yPos, subjectsArray[i].xPos, subjectsArray[i].yPos) <= infectionDistance && this.triedInfectedArray[i] == "no") {
+               this.triedInfectedArray[i] = "yes";
                let num = random(100);
 
                if (num < infectionRate) {
@@ -186,7 +209,7 @@ class Subject {
    contractedToInfected() {
       this.contractedCounter++; 
 
-      if (this.contractedCounter >= contractedToInfectedDuration) {
+      if (this.contractedCounter >= this.contractedToInfectedDuration) {
          this.state = "infected";
          this.contractedCounter = 0;
          this.recoveryOrDeath();
@@ -197,13 +220,13 @@ class Subject {
       this.infectedCounter++;
 
       if (this.abilityToRecover == "yes") {
-         if (this.infectedCounter >= infectedToRecoveredDuration) {
+         if (this.infectedCounter >= this.infectedToRecoveredDuration) {
             this.state = "recovered";
          }
       }
 
       else if (this.abilityToRecover == "no") {
-         if (this.infectedCounter >= infectedToRecoveredDuration) {
+         if (this.infectedCounter >= this.infectedToRecoveredDuration) {
             this.state = "dead";
             numberOfDeadSubjects++;
          }
