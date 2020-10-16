@@ -11,7 +11,7 @@ let subjectSpeedUpper = 2.5;
 // overall subject stats variables
 let numberOfUninfectedSubjects = 1000;
 let numberOfContractedSubjects = 0;
-let numberOfInfectedSubjects = 1;
+let numberOfInfectedSubjects = 5;
 let numberOfRecoveredSubjects = 0;
 let numberOfDeadSubjects = 0;
 
