@@ -34,6 +34,7 @@ function setup() {
    createCanvas(canvasWidth, canvasHeight);
    noStroke();
    imageMode(CENTER);
+   noiseDetail(24);
 
    for (let i = 0; i < numberOfUninfectedSubjects; i++) {
       subjectsArray.push(new Subject(subjectIDCounter, "uninfected", random(width), random(height), subjectSize, random(1000000), random(1000000)));
